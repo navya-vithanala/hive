@@ -5,6 +5,7 @@
 
 import { PoolClient } from 'pg';
 import pricingService from './pricing_service';
+import { DailyCostRow, LatencyStatsRow, LatencyBucketRow, ModelCostRow, AgentCostRow, LLMEventRow } from './analytics_types';
 
 const BUCKETS = [
   { label: '0-1s', min: 0, max: 1000 },
@@ -173,9 +174,8 @@ const fetchDailyCA = async ({
     ${conds.length ? `WHERE ${conds.join(' AND ')}` : ''}
     ORDER BY bucket ASC
   `;
-  const { rows } = await client.query(sql, params);
-  return rows.map((r: any) => ({
-    bucket: r.bucket instanceof Date ? r.bucket.toISOString().slice(0, 10) : r.bucket,
+  const { rows } = await client.query<DailyCostRow>(sql, params);
+  return rows.map((r) => ({    bucket: r.bucket instanceof Date ? r.bucket.toISOString().slice(0, 10) : r.bucket,
     requests: Number(r.requests) || 0,
     cost_total: toNumber(r.cost_total, 0),
     tokens: {
@@ -258,9 +258,8 @@ const fetchLatencyDaily = async ({
     GROUP BY 1
     ORDER BY 1 ASC
   `;
-  const { rows } = await client.query(sql, params);
-  return rows.map((r: any) => ({
-    bucket: r.bucket instanceof Date ? r.bucket.toISOString().slice(0, 10) : r.bucket,
+  const { rows } = await client.query<LatencyStatsRow>(sql, params);
+  return rows.map((r) => ({    bucket: r.bucket instanceof Date ? r.bucket.toISOString().slice(0, 10) : r.bucket,
     count: Number(r.count) || 0,
     avg_ms: r.avg_ms === null ? null : Number(r.avg_ms),
     p50_ms: r.p50_ms === null ? null : Number(r.p50_ms),
@@ -303,9 +302,8 @@ const fetchLatencyDistributionDaily = async ({
     WHERE ${conds.join(' AND ')}
     GROUP BY 1
   `;
-  const { rows } = await client.query(sql, params);
-  return rows.map((r: any) => ({ bucket: r.bucket, count: Number(r.count) || 0 }));
-};
+  const { rows } = await client.query<LatencyBucketRow>(sql, params);
+  return rows.map((r) => {{ bucket: r.bucket, count: Number(r.count) || 0 }});};
 
 const fetchModelCost = async ({
   client,
